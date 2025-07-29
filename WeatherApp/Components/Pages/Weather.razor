@@ -1,0 +1,67 @@
+﻿@page "/weather"
+@using WeatherApp.Services
+@inject WeatherAPI WeatherApiService
+@rendermode InteractiveServer
+
+<h3>☀️ Previsão do Tempo ☀️</h3>
+
+<div class="input-group mb-3">
+    <input @bind="_cityName" @bind:event="oninput" class="form-control" placeholder="Digite o nome de uma cidade" />
+
+    <button @onclick="GetWeather" class="btn btn-primary">Buscar</button>
+</div>
+
+@if (_isLoading)
+{
+    <p><em>Carregando...</em></p>
+}
+else if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <p style="color: red;">@_errorMessage</p>
+}
+else if (_weatherData != null)
+{
+    <div class="card" style="width: 18rem;">
+        <div class="card-body">
+            <h5 class="card-title">Clima em: @_weatherData.Name</h5>
+            <p class="card-text">Temperatura: @_weatherData.Main.Temp.ToString("0.0") °C</p>
+            <p class="card-text">Condição: @_weatherData.Weather.First().Description</p>
+        </div>
+    </div>
+}
+
+@code {
+    private string? _cityName;
+    private WeatherApiResponse? _weatherData;
+    private bool _isLoading = false;
+    private string? _errorMessage;
+
+    private async Task GetWeather()
+    {
+        if (string.IsNullOrWhiteSpace(_cityName))
+        {
+            _errorMessage = "Por favor, digite o nome de uma cidade.";
+            return;
+        }
+
+        _isLoading = true;
+        _weatherData = null;
+        _errorMessage = null;
+
+        try
+        {
+            // A mágica acontece aqui! Chamando o serviço injetado.
+            _weatherData = await WeatherApiService.GetWeather(_cityName);
+        }
+        catch (Exception ex)
+        {
+            // Mensagem de erro mais detalhada para ajudar na depuração.
+            _errorMessage = $"Não foi possível buscar o clima. Verifique o nome da cidade ou sua chave de API. (Erro: {ex.Message})";
+        }
+        finally
+        {
+            _isLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+}
